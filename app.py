@@ -48,7 +48,7 @@ def remove_cards(counts, cards):
     for r in cards:
         idx = RANK_TO_IDX[r]
         if counts[idx] <= 0:
-            raise ValueError(f"Not enough {r}s left in deck")
+            raise ValueError(f"No hay suficientes {r} en el mazo")
         counts[idx] -= 1
     return tuple(counts)
 
@@ -266,59 +266,59 @@ def monte_carlo_hit(player_hand, upcard, remaining_counts, soft17_hit, n_iter):
     return ev, win/total_iter, loss/total_iter, push/total_iter
 
 # ------------------------------
-# Streamlit UI
+# Streamlit UI (en español)
 # ------------------------------
 def main():
-    st.set_page_config(page_title="Blackjack Exact Analyzer", layout="wide")
-    st.title("♠️ Blackjack Exact Analysis & Monte Carlo ♥️")
-    st.markdown("Mathematically precise EV and optimal decision based on exact probabilities.")
+    st.set_page_config(page_title="Analizador Exacto de Blackjack", layout="wide")
+    st.title("♠️ Análisis Exacto de Blackjack y Monte Carlo ♥️")
+    st.markdown("EV matemáticamente preciso y decisión óptima basada en probabilidades exactas.")
 
     # Sidebar configuration
     with st.sidebar:
-        st.header("⚙️ Configuration")
-        num_decks = st.number_input("Number of decks", min_value=1, max_value=8, value=1, step=1)
-        soft17_hit = st.checkbox("Dealer hits soft 17", value=False)
-        mc_iterations = st.number_input("Monte Carlo iterations", min_value=1000, max_value=10**6, value=100000, step=1000)
+        st.header("⚙️ Configuración")
+        num_decks = st.number_input("Número de mazos", min_value=1, max_value=8, value=1, step=1)
+        soft17_hit = st.checkbox("El dealer pide con 17 blando", value=False)
+        mc_iterations = st.number_input("Iteraciones de Monte Carlo", min_value=1000, max_value=10**6, value=100000, step=1000)
 
-        st.header("💰 Bankroll")
+        st.header("💰 Banca")
         if 'bank' not in st.session_state:
             st.session_state.bank = 1000
         if 'bet' not in st.session_state:
             st.session_state.bet = 10
-        st.session_state.bank = st.number_input("Current bank", value=st.session_state.bank, step=100)
-        st.session_state.bet = st.number_input("Current bet", value=st.session_state.bet, step=5)
+        st.session_state.bank = st.number_input("Banca actual", value=st.session_state.bank, step=100)
+        st.session_state.bet = st.number_input("Apuesta actual", value=st.session_state.bet, step=5)
 
-        if st.button("Reset history"):
+        if st.button("Reiniciar historial"):
             st.session_state.history = []
         if 'history' not in st.session_state:
             st.session_state.history = []
 
     # Main area: input cards
-    st.header("🃏 Table state")
+    st.header("🃏 Estado de la mesa")
 
     col1, col2 = st.columns(2)
     with col1:
-        dealer_upcard = st.selectbox("Dealer up card", RANKS, index=8)  # default 10
+        dealer_upcard = st.selectbox("Carta visible del dealer", RANKS, index=8)  # default 10
 
     with col2:
-        st.markdown("**Player cards**")
+        st.markdown("**Cartas del jugador**")
         if 'player_cards' not in st.session_state:
-            st.session_state.player_cards = ['10', '7']  # example
+            st.session_state.player_cards = ['10', '7']  # ejemplo
 
         # Display current cards
-        st.write("Hand: " + ", ".join(st.session_state.player_cards))
+        st.write("Mano: " + ", ".join(st.session_state.player_cards))
         total, soft = hand_total(st.session_state.player_cards)
-        st.write(f"Total: {total} ({'Soft' if soft else 'Hard'})")
+        st.write(f"Total: {total} ({'Blanda' if soft else 'Dura'})")
 
         # Buttons to add/remove cards
         add_col, rem_col = st.columns(2)
         with add_col:
-            new_card = st.selectbox("Add card", RANKS, key="add_card")
-            if st.button("➕ Add"):
+            new_card = st.selectbox("Añadir carta", RANKS, key="add_card")
+            if st.button("➕ Añadir"):
                 st.session_state.player_cards.append(new_card)
                 st.rerun()
         with rem_col:
-            if st.button("➖ Remove last"):
+            if st.button("➖ Quitar última"):
                 if st.session_state.player_cards:
                     st.session_state.player_cards.pop()
                     st.rerun()
@@ -329,18 +329,18 @@ def main():
     try:
         remaining_counts = remove_cards(total_decks_counts, visible_cards)
     except ValueError as e:
-        st.error(f"❌ {e}. Adjust cards or increase decks.")
+        st.error(f"❌ {e}. Ajusta las cartas o aumenta el número de mazos.")
         st.stop()
 
-    st.success(f"✅ Remaining cards: {sum(remaining_counts)}")
+    st.success(f"✅ Cartas restantes: {sum(remaining_counts)}")
 
     if total > 21:
-        st.error("Player hand already bust! Cannot continue.")
+        st.error("¡La mano del jugador ya se pasó! No se puede continuar.")
         st.stop()
 
     # Execute analysis
-    if st.button("🚀 Execute Analysis", type="primary"):
-        with st.spinner("Computing exact probabilities and Monte Carlo..."):
+    if st.button("🚀 Ejecutar análisis", type="primary"):
+        with st.spinner("Calculando probabilidades exactas y Monte Carlo..."):
             # Exact calculations
             dealer_dist = dealer_distribution_from_upcard(dealer_upcard, remaining_counts, soft17_hit)
             ev_stand_val, win_stand, loss_stand, push_stand = ev_stand(total, dealer_dist)
@@ -362,11 +362,11 @@ def main():
 
             # Recommendation based on exact EV
             if ev_stand_val > ev_hit_val:
-                recommendation = "STAND"
+                recommendation = "PLANTARSE"
                 best_ev = ev_stand_val
                 best_win, best_loss = win_stand, loss_stand
             else:
-                recommendation = "HIT"
+                recommendation = "PEDIR"
                 best_ev = ev_hit_val
                 best_win, best_loss = win_hit, loss_hit
 
@@ -374,44 +374,44 @@ def main():
             kelly_fraction = best_win - best_loss  # p - q
 
             # Display results
-            st.header("📊 Results")
+            st.header("📊 Resultados")
 
             col_res1, col_res2, col_res3 = st.columns(3)
             with col_res1:
-                st.metric("Player total", f"{total} ({'Soft' if soft else 'Hard'})")
-                st.metric("Prob dealer bust", f"{dealer_dist.get('bust', 0):.4%}")
+                st.metric("Total jugador", f"{total} ({'Blanda' if soft else 'Dura'})")
+                st.metric("Prob. de que el dealer se pase", f"{dealer_dist.get('bust', 0):.4%}")
 
             with col_res2:
-                st.metric("EV(Stand)", f"{ev_stand_val:.4%}")
-                st.metric("EV(Hit)", f"{ev_hit_val:.4%}")
+                st.metric("EV(Plantarse)", f"{ev_stand_val:.4%}")
+                st.metric("EV(Pedir)", f"{ev_hit_val:.4%}")
 
             with col_res3:
-                st.metric("Recommendation", recommendation)
-                st.metric("Kelly bet fraction", f"{kelly_fraction:.4%}")
+                st.metric("Recomendación", recommendation)
+                st.metric("Fracción de Kelly", f"{kelly_fraction:.4%}")
 
-            st.subheader("Dealer exact distribution")
+            st.subheader("Distribución exacta del dealer")
             dist_display = {k: f"{v:.4%}" for k, v in dealer_dist.items()}
             st.json(dist_display)
 
-            st.subheader("🔁 Monte Carlo Comparison")
+            st.subheader("🔁 Comparación Monte Carlo")
             comp_data = {
-                "Method": ["Exact Stand", "MC Stand", "Exact Hit", "MC Hit"],
+                "Método": ["Exacto Plantarse", "MC Plantarse", "Exacto Pedir", "MC Pedir"],
                 "EV": [f"{ev_stand_val:.4%}", f"{mc_stand_ev:.4%}", f"{ev_hit_val:.4%}", f"{mc_hit_ev:.4%}"],
-                "Win": [f"{win_stand:.4%}", f"{mc_stand_w:.4%}", f"{win_hit:.4%}", f"{mc_hit_w:.4%}"],
-                "Loss": [f"{loss_stand:.4%}", f"{mc_stand_l:.4%}", f"{loss_hit:.4%}", f"{mc_hit_l:.4%}"],
-                "Push": [f"{push_stand:.4%}", f"{mc_stand_push:.4%}", f"{push_hit:.4%}", f"{mc_hit_push:.4%}"],
+                "Ganar": [f"{win_stand:.4%}", f"{mc_stand_w:.4%}", f"{win_hit:.4%}", f"{mc_hit_w:.4%}"],
+                "Perder": [f"{loss_stand:.4%}", f"{mc_stand_l:.4%}", f"{loss_hit:.4%}", f"{mc_hit_l:.4%}"],
+                "Empate": [f"{push_stand:.4%}", f"{mc_stand_push:.4%}", f"{push_hit:.4%}", f"{mc_hit_push:.4%}"],
             }
             st.dataframe(comp_data, use_container_width=True)
 
             # Optional: update bank history (simple)
-            if st.button("Record result (Win/Loss)"):
+            if st.button("Registrar resultado (Ganar/Perder)"):
                 # Not implemented in detail, just a placeholder
                 st.session_state.history.append({
-                    "hand": st.session_state.player_cards.copy(),
+                    "mano": st.session_state.player_cards.copy(),
                     "decision": recommendation,
                     "ev": best_ev
                 })
-                st.success("Recorded.")
+                st.success("Registrado.")
 
 if __name__ == "__main__":
     main()
